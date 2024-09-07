@@ -10,6 +10,12 @@ import os
 
 import json
 
+from .play_audio import ajustar_velocidade
+
+def is_empty_or_whitespace(text):
+    # Remove espaços em branco do início e do fim e verifica se a string resultante está vazia
+    return not text.strip()
+
 def ler_json_como_dict(filename):
     # Obter o diretório home do usuário
     home_dir = os.path.expanduser("~")
@@ -69,15 +75,18 @@ def verifica_ou_cria_json(filename, default_language="en"):
 
 def split_text( text):
     # Divide o texto em uma lista com base em '.' ou ';'
-    sentences = [sentence.strip() for sentence in text.replace(';', '.').split('.') if sentence]
+    #sentences = [sentence.strip() for sentence in text.replace(';', '.').split('.') if sentence]
+    sentences = [sentence.strip() for sentence in text.split('.') if sentence]
     return sentences
 
 def play_text(text,lang):
-    tts = gTTS(text, lang=lang)  # Ajuste o idioma conforme necessário
-    temp_audio_file = "/tmp/temp_audio.mp3"
-    tts.save(temp_audio_file)
-    playsound(temp_audio_file)
-    os.remove(temp_audio_file)
+    if not is_empty_or_whitespace(text):
+        tts = gTTS(text, lang=lang)  # Ajuste o idioma conforme necessário
+        temp_audio_file = "/tmp/temp_audio.mp3"
+        tts.save(temp_audio_file)
+        #playsound(temp_audio_file)
+        ajustar_velocidade(temp_audio_file, fator=1.25)  # Acelera o áudio em 50%
+        os.remove(temp_audio_file)
 
 # For our example application, this class is not exactly required.
 # But we had to make it because we needed the app menu extension to show the menu.
