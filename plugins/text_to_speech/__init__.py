@@ -85,7 +85,7 @@ def play_text(text,lang):
         temp_audio_file = "/tmp/temp_audio.mp3"
         tts.save(temp_audio_file)
         #playsound(temp_audio_file)
-        ajustar_velocidade(temp_audio_file, fator=1.25)  # Acelera o áudio em 50%
+        ajustar_velocidade(temp_audio_file, fator=1.3)  # Acelera o áudio em 50%
         os.remove(temp_audio_file)
 
 # For our example application, this class is not exactly required.

@@ -1,9 +1,5 @@
 #!/usr/bin/python3
 
-import gi
-gi.require_version('Gio', '2.0')
-gi.require_version('Gedit', '3.0')
-
 from pydub import AudioSegment
 from pydub.playback import play
 import tempfile
@@ -13,11 +9,8 @@ def ajustar_velocidade(audio_path, fator):
     # Carregar o arquivo de áudio
     audio = AudioSegment.from_file(audio_path)
     
-    # Ajustar a velocidade (fator > 1 acelera, fator < 1 desacelera)
-    audio_modificado = audio._spawn(audio.raw_data, overrides={
-        "frame_rate": int(audio.frame_rate * fator)
-    })
-    audio_modificado = audio_modificado.set_frame_rate(audio.frame_rate)
+    # Ajustar a velocidade sem alterar o pitch
+    audio_modificado = audio.speedup(playback_speed=fator)
     
     # Salvar o áudio modificado em um arquivo temporário
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
@@ -31,7 +24,4 @@ def ajustar_velocidade(audio_path, fator):
     # Remover o arquivo temporário
     os.remove(temp_file.name)
 
-# Exemplo de uso
-#arquivo_audio = "caminho/para/seu/audio.mp3"
-#ajustar_velocidade(arquivo_audio, fator=1.5)  # Acelera o áudio em 50%
 
