@@ -1,7 +1,10 @@
 # Install
 
 Place the contents of the `plugins` folder into Gedit's plugins directory (~/.local/share/gedit/plugins/). 
-Activate the plugin in Gedit under `Preferences --> Plugins.`
+
+# Activate
+
+Activate the plugin in Gedit under `Preferences --> Plugins`. It is recomended configurate the language.
 
 # Using
 
