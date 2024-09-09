@@ -1,13 +1,9 @@
 
 from gi.repository import GObject, Gtk, Gedit, PeasGtk, Gio
 
-from gtts import gTTS
-from playsound import playsound
 import os
-
+import requests
 import json
-
-from .play_audio import ajustar_velocidade
 
 def is_empty_or_whitespace(text):
     # Remove espaços em branco do início e do fim e verifica se a string resultante está vazia
@@ -70,20 +66,16 @@ def verifica_ou_cria_json(filename, default_language="en"):
         print(f"The file '{caminho_arquivo}' was created with '{data}'.")
         return False
 
-def split_text( text):
-    # Divide o texto em uma lista com base em '.' ou ';'
-    #sentences = [sentence.strip() for sentence in text.replace(';', '.').split('.') if sentence]
-    sentences = [sentence.strip() for sentence in text.split('.') if sentence]
-    return sentences
+def send_dict_to_server(server_url,data):
+    # Enviar solicitação POST ao servidor
+    response = requests.post(f'{server_url}/add_task', json=data)
 
-def play_text(text,lang):
-    if not is_empty_or_whitespace(text):
-        tts = gTTS(text, lang=lang)  # Ajuste o idioma conforme necessário
-        temp_audio_file = "/tmp/temp_audio.mp3"
-        tts.save(temp_audio_file)
-        #playsound(temp_audio_file)
-        ajustar_velocidade(temp_audio_file, fator=1.3)  # Acelera o áudio em 50%
-        os.remove(temp_audio_file)
+    if response.status_code == 200:
+        print(f"TTS ID: {response.json()['id']}")
+        return response.json()['id'];
+    else:
+        print("Error submitting task to server:", server_url)
+        return None
 
 # For our example application, this class is not exactly required.
 # But we had to make it because we needed the app menu extension to show the menu.
@@ -151,7 +143,7 @@ class ExampleWindowActivatable(GObject.Object, Gedit.WindowActivatable, PeasGtk.
         action = Gio.SimpleAction(name='play_selected_text')
         action.connect('activate', self.action_cb)
         self.window.add_action(action)
-
+    
     def text_to_speech(self, action):
 
         view = self.window.get_active_view()
@@ -170,15 +162,14 @@ class ExampleWindowActivatable(GObject.Object, Gedit.WindowActivatable, PeasGtk.
         if not selected_text:
             print("Error: No text selected")
             return
-
-        #print("Text selected:", selected_text)
-        sentences = split_text(selected_text)
-
-        info=ler_json_como_dict("text_to_speech.json")
         
-        for sentence in sentences:
-            #print("Playing sentence:", sentence)
-            play_text(sentence,info["language"])
+        info=ler_json_como_dict("text_to_speech.json");
+        server_url='http://localhost:5000';
+        Dict={ "text": selected_text, "language": info["language"], "split_pattern": ["."], "speed":1.25 };
+        
+        #print(selected_text)
+        #print(Dict)
+        send_dict_to_server(server_url,Dict)
             
     def action_cb(self, action, data):
         # On action clear the document.

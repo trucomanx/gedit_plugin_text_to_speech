@@ -1,2 +1,1 @@
-gtts
-pydub
+requests
