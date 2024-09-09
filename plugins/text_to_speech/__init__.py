@@ -1,7 +1,4 @@
 
-# This file needs to be placed like ~/.local/share/gedit/plugins/example/__init__.py
-# or renamed like ~/.local/share/gedit/plugins/example.py depending on .plugin file
-
 from gi.repository import GObject, Gtk, Gedit, PeasGtk, Gio
 
 from gtts import gTTS
@@ -31,10 +28,10 @@ def ler_json_como_dict(filename):
                 data = json.load(json_file)
             return data  # Retornar o conteúdo como dict
         except json.JSONDecodeError:
-            print(f"Erro ao decodificar o arquivo '{filename}'.")
+            print(f"Error decoding file '{caminho_arquivo}'.")
             return None
     else:
-        print(f"O arquivo '{filename}' não foi encontrado.")
+        print(f"The file '{caminho_arquivo}' was not found.")
         return None
 
 def escreve_dict_como_json(filename, data):
@@ -48,7 +45,7 @@ def escreve_dict_como_json(filename, data):
     with open(caminho_arquivo, 'w') as json_file:
         json.dump(data, json_file, indent=4)
     
-    print(f"O arquivo '{caminho_arquivo}' foi criado com '{data}'.")
+    print(f"The file '{caminho_arquivo}' was created with '{data}'.")
     return True
         
 def verifica_ou_cria_json(filename, default_language="en"):
@@ -60,7 +57,7 @@ def verifica_ou_cria_json(filename, default_language="en"):
     
     # Verificar se o arquivo existe
     if os.path.isfile(caminho_arquivo):
-        print(f"O arquivo '{caminho_arquivo}' já existe.")
+        print(f"The file '{caminho_arquivo}' already exists.")
         return True
     else:
         # Se o arquivo não existe, criar um novo arquivo JSON com a chave "language"
@@ -70,7 +67,7 @@ def verifica_ou_cria_json(filename, default_language="en"):
         with open(caminho_arquivo, 'w') as json_file:
             json.dump(data, json_file, indent=4)
         
-        print(f"O arquivo '{caminho_arquivo}' foi criado com '{data}'.")
+        print(f"The file '{caminho_arquivo}' was created with '{data}'.")
         return False
 
 def split_text( text):
@@ -148,7 +145,7 @@ class ExampleWindowActivatable(GObject.Object, Gedit.WindowActivatable, PeasGtk.
     def do_activate(self):
         # Defining the action which was set earlier in AppActivatable.
         self._connect_menu()
-        self._insert_bottom_panel()
+        #self._insert_bottom_panel()
 
     def _connect_menu(self):
         action = Gio.SimpleAction(name='play_selected_text')
@@ -212,7 +209,7 @@ class ExampleWindowActivatable(GObject.Object, Gedit.WindowActivatable, PeasGtk.
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
 
         # Adicionar uma entrada de texto (Gtk.Entry) para o usuário configurar o idioma
-        label = Gtk.Label(label="Digite o código de idioma (por exemplo, 'en' para inglês):")
+        label = Gtk.Label(label="Enter the gtts language code (e.g. 'en' for English):")
         vbox.pack_start(label, False, False, 0)
 
         info=ler_json_como_dict("text_to_speech.json")
@@ -223,7 +220,7 @@ class ExampleWindowActivatable(GObject.Object, Gedit.WindowActivatable, PeasGtk.
         vbox.pack_start(self.entry_language, False, False, 0)
 
         # Botão para salvar as configurações
-        button = Gtk.Button(label="Salvar Configurações")
+        button = Gtk.Button(label="Save Settings")
         button.connect("clicked", self.on_save_button_clicked)
         vbox.pack_start(button, False, False, 0)
 
@@ -234,4 +231,4 @@ class ExampleWindowActivatable(GObject.Object, Gedit.WindowActivatable, PeasGtk.
         data=dict();
         data['language']=self.entry_language.get_text()
         escreve_dict_como_json("text_to_speech.json", data)
-        print(f"Idioma configurado para: {data}")
+        print(f"Language set to: {data}")
