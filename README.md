@@ -1,6 +1,10 @@
 # Install
 
-Place the contents of the `plugins` folder into Gedit's plugins directory (~/.local/share/gedit/plugins/). 
+Place the contents of the `plugins` folder into Gedit's plugins directory `~/.local/share/gedit/plugins/` .
+
+```bash
+cp -r  plugins/*  ~/.local/share/gedit/plugins
+```
 
 # Activate
 
