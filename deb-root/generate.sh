@@ -2,8 +2,9 @@
 
 ################################################################################
 VERSION=$(grep "^Version=" ../plugins/text_to_speech.plugin | cut -d'=' -f2)
+ARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH)
 
-mkdir -p gedit-plugin-text-to-speech/usr/share/gedit/plugins
+mkdir -p gedit-plugin-text-to-speech/usr/lib/$ARCH/gedit/plugins
 mkdir -p gedit-plugin-text-to-speech/DEBIAN
 
 # Caminho para o arquivo de serviço
@@ -23,7 +24,7 @@ Description: Text to speech plugin require https://github.com/trucomanx/text_to_
 # Cria o arquivo de serviço temporário e escreve o conteúdo nele
 echo "$STRING_CONTENT" | tee $TEMP_FILEPATH > /dev/null
 
-cp -r ../plugins/* gedit-plugin-text-to-speech/usr/share/gedit/plugins
+cp -r ../plugins/* gedit-plugin-text-to-speech/usr/lib/$ARCH/gedit/plugins
 
 dpkg-deb --build gedit-plugin-text-to-speech
 
