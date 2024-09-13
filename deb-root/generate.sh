@@ -1,12 +1,7 @@
 #!/bin/bash
 
-# Defina as variáveis que você deseja substituir
-USER=$(whoami)  # Nome do usuário atual
-GROUP=$(id -gn) # Nome do grupo principal do usuário atual
-HOME_DIR=$HOME  # Diretório home do usuário
-USERID=$(id -u $USER) # User ID
-PROGRAM_PATH=$(which clipboard-tts-client) # Path of some program
-PYTHON_NAME=$(python3 --version | awk '{print "python" $2}' | sed 's/\.[0-9]*$//') # PYthon name
+################################################################################
+VERSION=$(grep "^Version=" ../plugins/text_to_speech.plugin | cut -d'=' -f2)
 
 mkdir -p gedit-plugin-text-to-speech/usr/share/gedit/plugins
 mkdir -p gedit-plugin-text-to-speech/DEBIAN
@@ -15,9 +10,8 @@ mkdir -p gedit-plugin-text-to-speech/DEBIAN
 TEMP_FILEPATH="gedit-plugin-text-to-speech/DEBIAN/control"
 
 # Conteúdo do arquivo de serviço (substitua os placeholders)
-STRING_CONTENT="[Desktop Entry]
-Package: gedit-plugin-text-to-speech
-Version: 0.1.0
+STRING_CONTENT="Package: gedit-plugin-text-to-speech
+Version: $VERSION
 Section: editors
 Priority: optional
 Architecture: all
@@ -31,3 +25,4 @@ echo "$STRING_CONTENT" | tee $TEMP_FILEPATH > /dev/null
 
 cp -r ../plugins/* gedit-plugin-text-to-speech/usr/share/gedit/plugins
 
+dpkg-deb --build gedit-plugin-text-to-speech
