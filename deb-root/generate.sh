@@ -26,3 +26,5 @@ echo "$STRING_CONTENT" | tee $TEMP_FILEPATH > /dev/null
 cp -r ../plugins/* gedit-plugin-text-to-speech/usr/share/gedit/plugins
 
 dpkg-deb --build gedit-plugin-text-to-speech
+
+mv gedit-plugin-text-to-speech.deb gedit-plugin-text-to-speech_${VERSION}.deb
