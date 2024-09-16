@@ -5,6 +5,7 @@ import os
 import requests
 import json
 
+
 def is_empty_or_whitespace(text):
     # Remove espaços em branco do início e do fim e verifica se a string resultante está vazia
     return not text.strip()
@@ -77,6 +78,17 @@ def send_dict_to_server(server_url,data):
         print("Error submitting task to server:", server_url)
         return None
 
+def remove_id_of_server(server_url,task_id):
+    # Enviar solicitação DELETE ao servidor
+    response = requests.delete(f'{server_url}/remove_task/{task_id}')
+
+    if response.status_code == 200:
+        print(response.json()["message"])
+        return response.json()["message"]
+    else:
+        print("Error removing task:",task_id)
+        return None
+
 # For our example application, this class is not exactly required.
 # But we had to make it because we needed the app menu extension to show the menu.
 class ExampleAppActivatable(GObject.Object, Gedit.AppActivatable):
@@ -97,12 +109,17 @@ class ExampleAppActivatable(GObject.Object, Gedit.AppActivatable):
         self.menu_ext = self.extend_menu("tools-section")
         # This is the submenu which is added to a menu item and then inserted in tools menu.        
         sub_menu = Gio.Menu()
-        sub_menu_item = Gio.MenuItem.new("Play the selected text", 'win.play_selected_text')
-        sub_menu.append_item(sub_menu_item)
+        sub_menu_play   = Gio.MenuItem.new("Play the selected text", 'win.play_selected_text')
+        sub_menu.append_item(sub_menu_play)
+        sub_menu_remove = Gio.MenuItem.new("Remove the last task", 'win.remove_last_task')
+        sub_menu.append_item(sub_menu_remove)
+        
         self.menu_item = Gio.MenuItem.new_submenu("Text to speech", sub_menu)
         self.menu_ext.append_menu_item(self.menu_item)
+        
         # Setting accelerators, now our action is called when Ctrl+Alt+1 is pressed.
         self.app.set_accels_for_action("win.play_selected_text", ("<Ctrl><Shift>p", None))
+        self.app.set_accels_for_action("win.remove_last_task", ("<Ctrl><Shift>r", None))
 
     def do_deactivate(self):
         self._remove_menu()
@@ -126,13 +143,14 @@ class ExampleWindowActivatable(GObject.Object, Gedit.WindowActivatable, PeasGtk.
         GObject.Object.__init__(self)
         # This is the attachment we will make to bottom panel.
         self.bottom_bar = Gtk.Box()
-        
+        self.LastID=None;
     
     #this is called every time the gui is updated
     def do_update_state(self):
         # if there is no document in sight, we disable the action, so we don't get NoneException
         if self.window.get_active_view() is not None:
             self.window.lookup_action('play_selected_text').set_enabled(True)
+            self.window.lookup_action('remove_last_task').set_enabled(True)
 
     def do_activate(self):
         # Defining the action which was set earlier in AppActivatable.
@@ -140,9 +158,13 @@ class ExampleWindowActivatable(GObject.Object, Gedit.WindowActivatable, PeasGtk.
         #self._insert_bottom_panel()
 
     def _connect_menu(self):
-        action = Gio.SimpleAction(name='play_selected_text')
-        action.connect('activate', self.action_cb)
-        self.window.add_action(action)
+        action_play = Gio.SimpleAction(name='play_selected_text')
+        action_play.connect('activate', self.action_cb)
+        self.window.add_action(action_play)
+    
+        action_remove = Gio.SimpleAction(name='remove_last_task')
+        action_remove.connect('activate', self.action_rem)
+        self.window.add_action(action_remove)
     
     def text_to_speech(self, action):
 
@@ -165,17 +187,21 @@ class ExampleWindowActivatable(GObject.Object, Gedit.WindowActivatable, PeasGtk.
         
         info=ler_json_como_dict("text_to_speech.json");
         server_url='http://localhost:5000';
-        Dict={ "text": selected_text, "language": info["language"], "split_pattern": [". \n",".\n","\n\n"], "speed":1.25 };
+        Dict={ "text": selected_text, "language": info["language"], "split_pattern": ["\n\n"], "speed":1.25 };
         
         #print(selected_text)
         #print(Dict)
-        send_dict_to_server(server_url,Dict)
+        self.LastID=send_dict_to_server(server_url,Dict);
             
     def action_cb(self, action, data):
         # On action clear the document.
         #doc = self.window.get_active_document()
         #doc.set_text("")
         self.text_to_speech(action)
+
+    def action_rem(self, action, data):
+        server_url='http://localhost:5000';
+        remove_id_of_server(server_url,self.LastID);
 
     def _insert_bottom_panel(self):
         # Add elements to panel.
