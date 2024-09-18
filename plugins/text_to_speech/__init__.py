@@ -187,7 +187,7 @@ class ExampleWindowActivatable(GObject.Object, Gedit.WindowActivatable, PeasGtk.
         
         info=ler_json_como_dict("text_to_speech.json");
         server_url='http://localhost:5000';
-        Dict={ "text": selected_text, "language": info["language"], "split_pattern": ["\n\n"], "speed":1.25 };
+        Dict={ "text": selected_text, "language": info["language"], "split_pattern": ["\n\n","\n\r\n"], "speed":1.25 };
         
         #print(selected_text)
         #print(Dict)
