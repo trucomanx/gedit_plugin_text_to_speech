@@ -5,6 +5,7 @@ import os
 import requests
 import json
 
+CONFIG_BASE_DIR="~/.config/gedit/plugins/text_to_speech"
 
 def is_empty_or_whitespace(text):
     # Remove espaços em branco do início e do fim e verifica se a string resultante está vazia
@@ -12,10 +13,10 @@ def is_empty_or_whitespace(text):
 
 def ler_json_como_dict(filename):
     # Obter o diretório home do usuário
-    home_dir = os.path.expanduser("~")
+    base_dir = os.path.expanduser(CONFIG_BASE_DIR)
     
     # Construir o caminho completo do arquivo
-    caminho_arquivo = os.path.join(home_dir, filename)
+    caminho_arquivo = os.path.join(base_dir, filename)
     
     # Verificar se o arquivo JSON existe
     if os.path.isfile(caminho_arquivo):
@@ -33,10 +34,12 @@ def ler_json_como_dict(filename):
 
 def escreve_dict_como_json(filename, data):
     # Obter o diretório home do usuário
-    home_dir = os.path.expanduser("~")
+    base_dir = os.path.expanduser(CONFIG_BASE_DIR)
+    
+    os.makedirs(base_dir,exist_ok=True);
     
     # Construir o caminho completo do arquivo
-    caminho_arquivo = os.path.join(home_dir, filename)
+    caminho_arquivo = os.path.join(base_dir, filename)
   
     # Criar e salvar o arquivo JSON
     with open(caminho_arquivo, 'w') as json_file:
@@ -45,12 +48,14 @@ def escreve_dict_como_json(filename, data):
     print(f"The file '{caminho_arquivo}' was created with '{data}'.")
     return True
         
-def verifica_ou_cria_json(filename, default_language="en"):
-    # Obter o diretório home do usuário
-    home_dir = os.path.expanduser("~")
+def verifica_ou_cria_json(filename, default_language="", default_host="localhost", default_port="5000"):
+    # Obter o diretório base do usuário
+    base_dir = os.path.expanduser(CONFIG_BASE_DIR)
+    
+    os.makedirs(base_dir,exist_ok=True);
     
     # Construir o caminho completo do arquivo
-    caminho_arquivo = os.path.join(home_dir, filename)
+    caminho_arquivo = os.path.join(base_dir, filename)
     
     # Verificar se o arquivo existe
     if os.path.isfile(caminho_arquivo):
@@ -58,14 +63,14 @@ def verifica_ou_cria_json(filename, default_language="en"):
         return True
     else:
         # Se o arquivo não existe, criar um novo arquivo JSON com a chave "language"
-        data = {"language": default_language}
+        data = {"language": default_language, "host":default_host, "port":default_port}
         
         # Criar e salvar o arquivo JSON
         with open(caminho_arquivo, 'w') as json_file:
             json.dump(data, json_file, indent=4)
         
         print(f"The file '{caminho_arquivo}' was created with '{data}'.")
-        return False
+        return True
 
 def send_dict_to_server(server_url,data):
     # Enviar solicitação POST ao servidor
@@ -89,6 +94,7 @@ def remove_id_of_server(server_url,task_id):
         print("Error removing task:",task_id)
         return None
 
+################################################################################
 # For our example application, this class is not exactly required.
 # But we had to make it because we needed the app menu extension to show the menu.
 class ExampleAppActivatable(GObject.Object, Gedit.AppActivatable):
@@ -99,27 +105,30 @@ class ExampleAppActivatable(GObject.Object, Gedit.AppActivatable):
         GObject.Object.__init__(self)
         self.menu_ext = None
         self.menu_item = None
-        verifica_ou_cria_json("text_to_speech.json", default_language="en");
+        verifica_ou_cria_json("text_to_speech.json");
 
     def do_activate(self):
         self._build_menu()
 
     def _build_menu(self):
+    
+        play_shortcut = "<Ctrl><Shift>p"
+        rem_shortcut  = "<Ctrl><Shift>r"
         # Get the extension from tools menu        
         self.menu_ext = self.extend_menu("tools-section")
         # This is the submenu which is added to a menu item and then inserted in tools menu.        
         sub_menu = Gio.Menu()
-        sub_menu_play   = Gio.MenuItem.new("Play the selected text", 'win.play_selected_text')
+        sub_menu_play   = Gio.MenuItem.new("Play the selected text "+play_shortcut, 'win.play_selected_text')
         sub_menu.append_item(sub_menu_play)
-        sub_menu_remove = Gio.MenuItem.new("Remove the last task", 'win.remove_last_task')
+        sub_menu_remove = Gio.MenuItem.new("Remove the last task "+rem_shortcut, 'win.remove_last_task')
         sub_menu.append_item(sub_menu_remove)
         
         self.menu_item = Gio.MenuItem.new_submenu("Text to speech", sub_menu)
         self.menu_ext.append_menu_item(self.menu_item)
         
         # Setting accelerators, now our action is called when Ctrl+Alt+1 is pressed.
-        self.app.set_accels_for_action("win.play_selected_text", ("<Ctrl><Shift>p", None))
-        self.app.set_accels_for_action("win.remove_last_task", ("<Ctrl><Shift>r", None))
+        self.app.set_accels_for_action("win.play_selected_text", (play_shortcut, None))
+        self.app.set_accels_for_action("win.remove_last_task", (rem_shortcut, None))
 
     def do_deactivate(self):
         self._remove_menu()
@@ -134,7 +143,7 @@ class ExampleAppActivatable(GObject.Object, Gedit.AppActivatable):
             
 
 
-
+################################################################################
 class ExampleWindowActivatable(GObject.Object, Gedit.WindowActivatable, PeasGtk.Configurable):
     window = GObject.property(type=Gedit.Window)
     __gtype_name__ = "ExampleWindowActivatable"
@@ -144,6 +153,7 @@ class ExampleWindowActivatable(GObject.Object, Gedit.WindowActivatable, PeasGtk.
         # This is the attachment we will make to bottom panel.
         self.bottom_bar = Gtk.Box()
         self.LastID=None;
+        self.info=None;
     
     #this is called every time the gui is updated
     def do_update_state(self):
@@ -185,9 +195,12 @@ class ExampleWindowActivatable(GObject.Object, Gedit.WindowActivatable, PeasGtk.
             print("Error: No text selected")
             return
         
-        info=ler_json_como_dict("text_to_speech.json");
-        server_url='http://localhost:5000';
-        Dict={ "text": selected_text, "language": info["language"], "split_pattern": ["\n\n","\n\r\n"], "speed":1.25 };
+        self.info=ler_json_como_dict("text_to_speech.json");
+        server_url='http://'+self.info["host"].strip()+':'+self.info["port"].strip();
+        Dict={  "text": selected_text, 
+                "language": self.info["language"], 
+                "split_pattern": ["\n\n","\n\r\n"], 
+                "speed":1.25 };
         
         #print(selected_text)
         #print(Dict)
@@ -200,7 +213,9 @@ class ExampleWindowActivatable(GObject.Object, Gedit.WindowActivatable, PeasGtk.
         self.text_to_speech(action)
 
     def action_rem(self, action, data):
-        server_url='http://localhost:5000';
+        self.info=ler_json_como_dict("text_to_speech.json")
+        server_url='http://'+self.info["host"].strip()+':'+self.info["port"].strip();
+        
         remove_id_of_server(server_url,self.LastID);
 
     def _insert_bottom_panel(self):
@@ -222,18 +237,43 @@ class ExampleWindowActivatable(GObject.Object, Gedit.WindowActivatable, PeasGtk.
         panel.remove(self.bottom_bar)
 
     def do_create_configure_widget(self):
+        # 
+        self.info=ler_json_como_dict("text_to_speech.json")
+        
         # Criar uma caixa vertical para a interface de configuração
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
 
-        # Adicionar uma entrada de texto (Gtk.Entry) para o usuário configurar o idioma
-        label = Gtk.Label(label="Enter the gtts language code (e.g. 'en' for English):")
+        # Adicionar uma entrada de texto (Gtk.Label) 
+        path = os.path.join(os.path.expanduser(CONFIG_BASE_DIR),"text_to_speech.json");
+        label = Gtk.Label()
+        label.set_markup("Config file: <a href=\"file://"+path+"\">"+path+"</a>")
         vbox.pack_start(label, False, False, 0)
 
-        info=ler_json_como_dict("text_to_speech.json")
+        # Adicionar uma entrada de texto (Gtk.Label) 
+        label = Gtk.Label(label="Enter the the host of text-to-speech-program:")
+        vbox.pack_start(label, False, False, 0)
+
+        # Entrada de texto para a configuração do host
+        self.entry_host = Gtk.Entry()
+        self.entry_host.set_text(self.info['host'].strip())  # Valor padrão
+        vbox.pack_start(self.entry_host, False, False, 0)
+
+        # Adicionar uma entrada de texto (Gtk.Label) 
+        label = Gtk.Label(label="Enter the the port of text-to-speech-program:")
+        vbox.pack_start(label, False, False, 0)
+
+        # Entrada de texto para a configuração do port
+        self.entry_port = Gtk.Entry()
+        self.entry_port.set_text(self.info['port'].strip())  # Valor padrão
+        vbox.pack_start(self.entry_port, False, False, 0)
+        
+        # Adicionar uma entrada de texto (Gtk.Entry) para o usuário configurar o idioma
+        label = Gtk.Label(label="Enter the gtts language code (e.g. 'en' for English or '' for auto):")
+        vbox.pack_start(label, False, False, 0)
 
         # Entrada de texto para a configuração do idioma
         self.entry_language = Gtk.Entry()
-        self.entry_language.set_text(info['language'])  # Valor padrão
+        self.entry_language.set_text(self.info['language'].strip())  # Valor padrão
         vbox.pack_start(self.entry_language, False, False, 0)
 
         # Botão para salvar as configurações
@@ -246,6 +286,8 @@ class ExampleWindowActivatable(GObject.Object, Gedit.WindowActivatable, PeasGtk.
     def on_save_button_clicked(self, widget):
         # Quando o botão é clicado, obtemos o texto digitado e salvamos a configuração
         data=dict();
-        data['language']=self.entry_language.get_text()
+        data['host'] = self.entry_host.get_text().strip()
+        data['port'] = self.entry_port.get_text().strip()
+        data['language'] = self.entry_language.get_text().strip()
         escreve_dict_como_json("text_to_speech.json", data)
         print(f"Language set to: {data}")
